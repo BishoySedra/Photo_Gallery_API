@@ -5,6 +5,7 @@ import Photo from "./models/photo.js";
 import Album from "./models/album.js";
 //import AlbumOfPhotos from "./models/album_of_photos.js";
 import photoRoutes from "./routes/photo.js";
+import albumRoutes from "./routes/album.js";
 
 dotenv.config();
 
@@ -16,9 +17,10 @@ app.use(Express.static('./public'));
 // parsing
 app.use(Express.json());
 
-// routes
-const baseURLPhoto = '/api/photo';
-app.use(baseURLPhoto, photoRoutes);
+// photo routes
+const baseURL = '/api';
+app.use(`${baseURL}/photo`, photoRoutes);
+app.use(`${baseURL}/album`, albumRoutes);
 
 connectDB();
 
