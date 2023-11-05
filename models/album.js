@@ -10,7 +10,7 @@ const Album = sequelize.define('album', {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    photos: {
+    has_photos: {
         type: DataTypes.JSON,
         allowNull: false,
         defaultValue: []

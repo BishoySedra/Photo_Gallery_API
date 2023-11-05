@@ -1,37 +1,6 @@
 import Album from "../models/album.js";
+import AlbumOfPhotos from "../models/album_of_photos.js";
 import Photo from "../models/photo.js";
-
-// export async function add_album(req, res) {
-//     try {
-//         const { name, description, photos } = req.body;
-
-//         const new_album = await Album.create({ name, description });
-
-//         const album_id = new_album.id;
-
-//         const target_array = [];
-
-//         await Promise.all(photos.map(async (photo_id) => {
-//             const target_photo = await Photo.findOne({ where: { id: photo_id }, attributes: { exclude: ["in_albums"] } });
-
-//             if (target_photo) {
-//                 target_array.push(target_photo);
-
-//                 await target_photo.update({
-//                     in_albums: [...(target_photo.in_albums || []), album_id]
-//                 });
-//             }
-//         }));
-
-//         await new_album.update({ photos: target_array });
-
-//         return res.json(new_album);
-
-//     } catch (error) {
-//         return res.json({ message: error.message });
-//     }
-// }
-
 
 export async function add_album(req, res) {
     try {
@@ -40,6 +9,11 @@ export async function add_album(req, res) {
 
         //console.log(name, description, photos);
 
+        // check if this album name already existed or not
+        let existingAlbum = await Album.findOne({ where: { name } });
+        if (existingAlbum) {
+            return res.json({ msg: "This Album already existed!!" });
+        }
 
         // creating the album with name and description
         let new_album = await Album.create({ name, description });
@@ -56,7 +30,10 @@ export async function add_album(req, res) {
         const album_id = new_album.id;
 
         for (let i = 0; i < photos_indices.length; i++) {
-            console.log(i);
+
+            // create relation between the photo and its album
+            await AlbumOfPhotos.create({ photoId: photos_indices[i], albumId: album_id });
+
             // get the photo id
             const id = photos_indices[i];
 
@@ -80,12 +57,13 @@ export async function add_album(req, res) {
         }
 
         // update the new_album with the targeted photos
-        await Album.update({ photos: target_array }, { where: { id: album_id } });
+        await Album.update({ has_photos: target_array }, { where: { id: album_id } });
+        new_album = await Album.findByPk(album_id);
 
         return res.json(new_album);
 
     } catch (error) {
-        return res.json({ message: error });
+        return res.json({ msg: error });
     }
 }
 
@@ -96,14 +74,14 @@ export async function get_album_by_id(req, res) {
 
         // check if the album existed or not
         if (!found_album) {
-            return res.json({ message: "No album found with this ID!" });
+            return res.json({ msg: "No album found with this ID!" });
         }
 
         return res.json(found_album);
 
     } catch (error) {
 
-        return res.json({ message: error });
+        return res.json({ msg: error });
 
     }
 }
@@ -114,72 +92,117 @@ export async function get_all_albums(req, res) {
 
         // check if the album existed or not
         if (!found_albums) {
-            return res.json({ message: "No albums found!" });
+            return res.json({ msg: "No albums found!" });
         }
 
         return res.json(found_albums);
 
     } catch (error) {
 
-        return res.json({ message: error });
+        return res.json({ msg: error });
 
     }
 }
 
-// export async function update_album(req, res) {
-//     try {
+export async function delete_album(req, res) {
+    try {
+        const { id } = req.params;
 
-//         const { name, description, photos } = req.body;
-//         const { id } = req.params;
-//         //console.log(name, description, photos);
+        const found_album = await Album.findByPk(id);
 
-//         const found_album = await Album.findByPk(id);
+        // check if this album existed or not
+        if (!found_album) {
+            return res.json({ msg: "No Album found with this ID to be deleted!!" });
+        }
 
-//         // check if the album existed to be updated
-//         if (!found_album) {
-//             return res.json({ message: "No album found with this ID to be updated!" });
-//         }
+        // get has_photos from the current album
+        const all_records = await AlbumOfPhotos.findAll({
+            where: {
+                albumId: id
+            }
+        });
 
-//         // updating the album with name and description
-//         let updated_album = await Album.update({ name, description }, { where: { id } });
+        const photoIds = all_records.map(({ dataValues: { photoId } }) => photoId);
+        console.log(photoIds);
 
-//         // get the photos indices array for looping
-//         const photos_indices = photos;
+        for (let i = 0; i < photoIds.length; i++) {
+            // get the current photo id
+            const photo_id = photoIds[i];
 
-//         // get the photos array to be updated and album id after creation
-//         const target_array = [];
-//         const album_id = updated_album.id;
+            // get the current photo to be updated
+            const current_photo = await Photo.findByPk(photo_id);
 
-//         for (let i = 0; i < photos_indices.length; i++) {
-//             //console.log(i);
-//             // get the photo id
-//             const id = photos_indices[i];
+            // get the in_albums array from the current photo
+            const { in_albums } = current_photo;
+            console.log(in_albums);
 
-//             // get the photo from db without in_albums attribute to be added
-//             let target_photo = await Photo.findOne({ where: { id }, attributes: { exclude: ["in_albums"] } });
+            // update the in_albums
+            const result_array = in_albums.filter((albumId) => albumId != id);
+            console.log(result_array);
 
-//             // edit the array of images with pushing a new one
-//             target_array.push(target_photo);
+            // update the current photo
+            await Photo.update({ in_albums: result_array }, { where: { id: photo_id } });
+        }
 
-//             // get the photo from db with in_albums attribute to be updated
-//             target_photo = await Photo.findByPk(id);
+        // delete the current album
+        await Album.destroy({ where: { id } });
+        await AlbumOfPhotos.destroy({ where: { albumId: id } });
 
-//             // get the in_albums attribute of the photo
-//             const in_albums_array = target_photo.in_albums;
+        return res.json({ msg: "Album deleted successfully" });
 
-//             // edit the in_albums_array with the new album index
-//             in_albums_array.push(album_id);
+    } catch (error) {
+        return res.json({ msg: error });
+    }
+}
 
-//             // update the in_albums attribute of the photo
-//             const updated_in_albums_attribute = await Photo.update({ in_albums: in_albums_array }, { where: { id } });
-//         }
+export async function update_album(req, res) {
+    try {
+        const { id } = req.params;
+        const { name, description, has_photos } = req.body;
 
-//         // update the new_album with the targeted photos
-//         await Album.update({ photos: target_array }, { where: { id: album_id } });
+        // check if the album existed or not
+        const found_album = await Album.findByPk(id);
+        if (!found_album) {
+            return res.json({ msg: "No album found with this ID to be updated!" });
+        }
 
-//         return res.json({ msg: "Album updated successfully", updated_album });
+        // get has_photos from the current album
+        const all_records = await AlbumOfPhotos.findAll({
+            where: {
+                albumId: id
+            }
+        });
 
-//     } catch (error) {
-//         return res.json({ message: error });
-//     }
-// }
+        const photoIds = all_records.map(record => record.photoId);
+
+        // Updating the in_albums attribute for photos
+        for (let i = 0; i < photoIds.length; i++) {
+            const photo_id = photoIds[i];
+            const current_photo = await Photo.findByPk(photo_id);
+            const in_albums_array = current_photo.in_albums.filter(albumId => albumId != id);
+            await Photo.update({ in_albums: in_albums_array }, { where: { id: photo_id } });
+        }
+
+        // Delete the old relations between the old photos and the current album
+        await AlbumOfPhotos.destroy({ where: { albumId: id } });
+
+        // Create new relations between photos and the current album
+        for (let i = 0; i < has_photos.length; i++) {
+            await AlbumOfPhotos.create({ photoId: has_photos[i], albumId: id });
+
+            const target_photo = await Photo.findByPk(has_photos[i]);
+            const in_albums_array = target_photo.in_albums;
+            in_albums_array.push(parseInt(id));
+            await Photo.update({ in_albums: in_albums_array }, { where: { id: has_photos[i] } });
+        }
+
+        // Update the album with the new photos
+        const target_array = await Photo.findAll({ where: { id: has_photos }, attributes: { exclude: ["in_albums"] } });
+        await Album.update({ name, description, has_photos: target_array }, { where: { id } });
+
+        return res.json({ msg: "Album updated successfully" });
+
+    } catch (error) {
+        return res.json({ msg: error.message });
+    }
+}

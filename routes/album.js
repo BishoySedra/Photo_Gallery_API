@@ -5,7 +5,8 @@ const router = Router();
 router.post("/add", albumControllers.add_album);
 router.get("/list", albumControllers.get_all_albums);
 router.get("/:id", albumControllers.get_album_by_id);
-//router.post("/:id/update", albumControllers.update_album);
+router.delete("/:id/delete", albumControllers.delete_album);
+router.post("/:id/update", albumControllers.update_album);
 
 
 export default router;
