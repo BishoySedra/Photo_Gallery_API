@@ -8,6 +8,7 @@ import photoRoutes from "./routes/photo.js";
 import albumRoutes from "./routes/album.js";
 import * as directoryFunctions from "./helpers/directory.js";
 import notFoundHandler from "./middlewares/not-found.js";
+import errorHandler from "./middlewares/error-handler.js";
 
 dotenv.config();
 
@@ -28,8 +29,9 @@ app.use(`${baseURL}/album`, albumRoutes);
 // connecting with DataBase
 connectDB();
 
-// middlewares
+// error handlers
 app.use(notFoundHandler);
+app.use(errorHandler);
 
 // create uploads folder
 directoryFunctions.create_uploads_directory();

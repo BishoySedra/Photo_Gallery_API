@@ -4,7 +4,7 @@ function validate(schema) {
             const validatedResult = await schema.validateAsync(req.body, { abortEarly: false });
             next();
         } catch (error) {
-            res.json({ message: error.details });
+            next(error);
         }
     }
 }

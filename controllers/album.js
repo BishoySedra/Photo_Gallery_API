@@ -1,8 +1,9 @@
+import { createCustomError } from "../errors/custom-error.js";
 import Album from "../models/album.js";
 import AlbumOfPhotos from "../models/album_of_photos.js";
 import Photo from "../models/photo.js";
 
-export async function add_album(req, res) {
+export async function add_album(req, res, next) {
     try {
 
         const { name, description, has_photos } = req.body;
@@ -12,14 +13,14 @@ export async function add_album(req, res) {
         // check if this album name already existed or not
         let existingAlbum = await Album.findOne({ where: { name } });
         if (existingAlbum) {
-            return res.json({ msg: "This Album already existed!!" });
+            next(createCustomError("This Album already existed!!", 409));
         }
 
         // creating the album with name and description
         let new_album = await Album.create({ name, description });
 
         if (!has_photos) {
-            return res.json(new_album);
+            return res.status(200).json(new_album);
         }
 
         // get the photos indices array for looping
@@ -60,51 +61,51 @@ export async function add_album(req, res) {
         await Album.update({ has_photos: target_array }, { where: { id: album_id } });
         new_album = await Album.findByPk(album_id);
 
-        return res.json(new_album);
+        return res.status(200).json(new_album);
 
     } catch (error) {
-        return res.json({ msg: error });
+        next(error);
     }
 }
 
-export async function get_album_by_id(req, res) {
+export async function get_album_by_id(req, res, next) {
     try {
         const { id } = req.params;
         const found_album = await Album.findByPk(id);
 
         // check if the album existed or not
         if (!found_album) {
-            return res.json({ msg: "No album found with this ID!" });
+            next(createCustomError("No album found with this ID!", 404));
         }
 
-        return res.json(found_album);
+        return res.status(200).json(found_album);
 
     } catch (error) {
 
-        return res.json({ msg: error });
+        next(error);
 
     }
 }
 
-export async function get_all_albums(req, res) {
+export async function get_all_albums(req, res, next) {
     try {
         const found_albums = await Album.findAll();
 
         // check if the album existed or not
         if (!found_albums) {
-            return res.json({ msg: "No albums found!" });
+            next(createCustomError("No albums found!", 404));
         }
 
-        return res.json(found_albums);
+        return res.status(200).json(found_albums);
 
     } catch (error) {
 
-        return res.json({ msg: error });
+        next(error);
 
     }
 }
 
-export async function delete_album(req, res) {
+export async function delete_album(req, res, next) {
     try {
         const { id } = req.params;
 
@@ -112,7 +113,7 @@ export async function delete_album(req, res) {
 
         // check if this album existed or not
         if (!found_album) {
-            return res.json({ msg: "No Album found with this ID to be deleted!!" });
+            next(createCustomError("No Album found with this ID to be deleted!!", 404));
         }
 
         // get has_photos from the current album
@@ -148,14 +149,14 @@ export async function delete_album(req, res) {
         await Album.destroy({ where: { id } });
         await AlbumOfPhotos.destroy({ where: { albumId: id } });
 
-        return res.json({ msg: "Album deleted successfully" });
+        return res.status(200).json({ msg: "Album deleted successfully" });
 
     } catch (error) {
-        return res.json({ msg: error });
+        next(error);
     }
 }
 
-export async function update_album(req, res) {
+export async function update_album(req, res, next) {
     try {
         const { id } = req.params;
         const { name, description, has_photos } = req.body;
@@ -163,7 +164,7 @@ export async function update_album(req, res) {
         // check if the album existed or not
         const found_album = await Album.findByPk(id);
         if (!found_album) {
-            return res.json({ msg: "No album found with this ID to be updated!" });
+            next(createCustomError("No album found with this ID to be updated!", 404));
         }
 
         // get has_photos from the current album
@@ -200,9 +201,9 @@ export async function update_album(req, res) {
         const target_array = await Photo.findAll({ where: { id: has_photos }, attributes: { exclude: ["in_albums"] } });
         await Album.update({ name, description, has_photos: target_array }, { where: { id } });
 
-        return res.json({ msg: "Album updated successfully" });
+        return res.status(200).json({ msg: "Album updated successfully" });
 
     } catch (error) {
-        return res.json({ msg: error.message });
+        next(error);
     }
 }
