@@ -1,6 +1,8 @@
+import { createCustomError } from "../errors/custom-error.js";
 import Album from "../models/album.js";
 import AlbumOfPhotos from "../models/album_of_photos.js";
 import Photo from "../models/photo.js";
+
 
 export async function add_photo(req, res) {
     try {
@@ -8,14 +10,14 @@ export async function add_photo(req, res) {
         const { path } = req.file;
 
         if (!path) {
-            return res.json({ msg: "please upload a photo!" });
+            return res.status(400).json({ msg: "please upload a photo!" });
         }
 
         const new_photo = await Photo.create({ name, description, photo: path });
         //console.log(req.file);
-        return res.json({ new_photo });
+        return res.status(200).json(new_photo);
     } catch (error) {
-        return res.json({ msg: error });
+        return res.status(500).json({ msg: error });
     }
 }
 
@@ -27,14 +29,14 @@ export async function get_photo_by_id(req, res) {
         const found_photo = await Photo.findByPk(id);
 
         if (!found_photo) {
-            return res.json({ msg: "No Photo Found with this ID!" });
+            return res.status(400).json({ msg: "No Photo Found with this ID!" });
         }
 
-        return res.json(found_photo);
+        return res.status(200).json(found_photo);
 
     } catch (error) {
 
-        return res.json({ msg: error });
+        return res.status(500).json({ msg: error });
 
     }
 }
@@ -45,14 +47,14 @@ export async function get_all_photos(req, res) {
         const found_photos = await Photo.findAll();
 
         if (!found_photos) {
-            return res.json({ msg: "No Photos Found!" });
+            return res.status(400).json({ msg: "No Photos Found!" });
         }
 
-        return res.json(found_photos);
+        return res.status(200).json(found_photos);
 
     } catch (error) {
 
-        return res.json({ msg: error });
+        return res.status(500).json({ msg: error });
 
     }
 }
@@ -66,7 +68,7 @@ export async function update_photo(req, res) {
 
         // check if this photo existed or not
         if (!found_photo) {
-            return res.json({ message: "No Photo found with this ID to be updated!!" });
+            return res.status(400).json({ message: "No Photo found with this ID to be updated!!" });
         }
 
         const { name, description } = req.body;
@@ -74,12 +76,11 @@ export async function update_photo(req, res) {
 
         const updated_photo = await Photo.update({ name, description, photo: path }, { where: { id } });
 
-        return res.json({ msg: "Photo updated successfully" });
+        return res.status(200).json({ msg: "Photo updated successfully" });
 
     } catch (error) {
 
-        return res.json({ message: error });
-
+        return res.status(500).json({ msg: error });
     }
 }
 
@@ -92,7 +93,7 @@ export async function delete_photo(req, res) {
 
         // check if this photo existed or not
         if (!found_photo) {
-            return res.json({ message: "No Photo found with this ID to be deleted!!" });
+            return res.status(400).json({ message: "No Photo found with this ID to be deleted!!" });
         }
 
         const { in_albums } = await Photo.findOne({ where: { id } });
@@ -122,11 +123,11 @@ export async function delete_photo(req, res) {
         if (deleted_photo) {
             await AlbumOfPhotos.destroy({ where: { photoId: id } });
         }
-        return res.json({ msg: "Photo deleted successfully" });
+        return res.status(200).json({ msg: "Photo deleted successfully" });
 
     } catch (error) {
 
-        return res.json({ msg: error });
+        return res.status(500).json({ msg: error });
 
     }
 }

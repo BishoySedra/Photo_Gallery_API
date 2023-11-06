@@ -7,6 +7,7 @@ import Album from "./models/album.js";
 import photoRoutes from "./routes/photo.js";
 import albumRoutes from "./routes/album.js";
 import * as directoryFunctions from "./helpers/directory.js";
+import notFoundHandler from "./middlewares/not-found.js";
 
 dotenv.config();
 
@@ -18,12 +19,17 @@ app.use(Express.static('./public'));
 // parsing
 app.use(Express.json());
 
+
 // photo routes
 const baseURL = '/api';
 app.use(`${baseURL}/photo`, photoRoutes);
 app.use(`${baseURL}/album`, albumRoutes);
 
+// connecting with DataBase
 connectDB();
+
+// middlewares
+app.use(notFoundHandler);
 
 // create uploads folder
 directoryFunctions.create_uploads_directory();

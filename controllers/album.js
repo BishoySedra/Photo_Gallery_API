@@ -5,7 +5,7 @@ import Photo from "../models/photo.js";
 export async function add_album(req, res) {
     try {
 
-        const { name, description, photos } = req.body;
+        const { name, description, has_photos } = req.body;
 
         //console.log(name, description, photos);
 
@@ -18,12 +18,12 @@ export async function add_album(req, res) {
         // creating the album with name and description
         let new_album = await Album.create({ name, description });
 
-        if (!photos) {
+        if (!has_photos) {
             return res.json(new_album);
         }
 
         // get the photos indices array for looping
-        const photos_indices = photos;
+        const photos_indices = has_photos;
 
         // get the photos array to be updated and album id after creation
         const target_array = [];
